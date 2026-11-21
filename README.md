@@ -134,17 +134,53 @@ Tutti i test sono **offline, deterministici e non consumano quote esterne**.
 make check
 ```
 Esegue sequenzialmente:
-1. `pytest backend/tests` (34 test passati)
+1. `pytest backend/tests` (51 test passati)
 2. `vitest` (14 test passati in 5 test suite)
 3. `ruff check backend` (0 errori)
 4. `eslint .` (0 errori)
-5. `mypy backend` (32 file controllati, 0 errori)
+5. `mypy backend` (51 file controllati, 0 errori)
 6. `tsc --noEmit` (0 errori)
 7. `vite build` (build bundle di produzione)
 
 ---
 
-## 7. Contratti API REST Principali (G02)
+## 7. Knowledge Base e Servizio RAG (GOAL 03)
+
+Il sistema include una base di conoscenza documentale in formato Markdown con Front Matter YAML e un motore di ricerca semantica RAG basato su vettori densi e ChromaDB persistente.
+
+### 7.1 Documenti della Knowledge Base (`knowledge_base/`)
+Contiene 8 guide operative approvate (`status: approved`) per i casi d'uso frequenti:
+- `reset_password.md`: Procedura self-service (SSPR) e sblocco account bloccato (KB-AUTH-001)
+- `email_outlook.md`: Configurazione Outlook desktop/webmail, limiti allegati e quote (KB-MAIL-001)
+- `vpn_access.md`: Connessione SecureConnect VPN, split tunneling e certificati (KB-NET-001)
+- `wifi_network.md`: Connessione Wi-Fi Corporate 802.1X e Guest portal, diagnostica DHCP (KB-NET-002)
+- `mfa_setup.md`: Configurazione Microsoft Authenticator, QR code e number matching (KB-AUTH-002)
+- `file_share.md`: Mapping cartelle di rete SMB H: (dipartimento) e S: (scambio) (KB-FILE-001)
+- `software_catalog.md`: Installazione Company Portal senza diritti admin e licenze speciali (KB-APP-001)
+- `incident_management.md`: Status page disservizi, policy ticket duplicati ed emergenze (KB-OPS-001)
+- Documenti di test per filtraggio: `draft_new_printer.md` (`draft`) e `archived_old_vpn.md` (`archived`).
+
+### 7.2 Comandi CLI e Indicizzazione
+```bash
+# Indicizzazione con encoder deterministico offline (istantaneo, zero download)
+make rag-index-fake
+
+# Esecuzione del benchmark di valutazione RAG offline (22 query in italiano)
+make rag-eval-offline
+
+# Indicizzazione con modello BGE-M3 locale (richiede download FlagModel)
+make rag-index
+```
+
+### 7.3 Risultati del Benchmark di Valutazione (Italiano)
+Valutazione su `backend/scripts/eval_dataset.json` (22 query realistiche: 21 in-scope, 1 out-of-scope):
+- **Recall@5:** 100.0% (21/21 hit nei primi 5 risultati)
+- **MRR@5:** 1.0000 (tutti i documenti attesi posizionati al 1° posto)
+- **Latenza Media:** ~4.5 ms (P50: 4.5 ms, P95: 6.2 ms)
+
+---
+
+## 8. Contratti API REST Principali
 
 | Metodo | Endpoint | Descrizione |
 |---|---|---|
@@ -152,14 +188,19 @@ Esegue sequenzialmente:
 | `POST` | `/api/conversations` | Creazione di una nuova conversazione (`title`, `user_id`) |
 | `GET` | `/api/conversations` | Elenco thread ordinati per ultimo aggiornamento (paginato) |
 | `GET` | `/api/conversations/{id}` | Dettaglio thread con messaggi ordinati e richieste collegate |
-| `POST` | `/api/conversations/{id}/messages` | Aggiunta messaggio utente (`role="user"`) con sanitizzazione segreti |
+| `POST` | `/api/conversations/{id}/messages` | Aggiunta messaggio utente con sanitizzazione segreti |
 | `POST` | `/api/conversations/{id}/requests` | Registrazione problema IT associato al thread |
 | `GET` | `/api/requests` | Consultazione richieste per i tecnici con filtro per stato |
 | `GET` | `/api/requests/{id}` | Dettaglio di una singola richiesta |
+| `GET` | `/api/knowledge/status` | Stato indice vettoriale, conteggio documenti/chunk e modello |
+| `POST` | `/api/knowledge/search` | Ricerca semantica top_k con supporto multi-query e fusione RRF |
+| `POST` | `/api/knowledge/reindex` | Re-indicizzazione manuale e pulizia chunk obsoleti |
 
 ---
 
-## 8. Note di Sicurezza e Sanitizzazione
+## 9. Note di Sicurezza e Sanitizzazione
 
-- **Redazione Credenziali:** Prima della persistenza in SQLite, il modulo `backend/app/core/redaction.py` individua e sostituisce automaticamente pattern espliciti di password (`password: [REDACTED_PASSWORD]`), token Bearer (`Bearer [REDACTED_TOKEN]`), Google API key (`[REDACTED_API_KEY]`) e chiavi private, preservando integralmente il linguaggio naturale ordinario.
-- **Audit Logging:** Ogni azione (`conversation_created`, `message_sent`, `support_request_created`) produce un `AuditEvent` sincrono con payload sanificato (mai testi integrali dei messaggi né credenziali).
+- **Redazione Credenziali:** Prima della persistenza in SQLite o del log strutturato delle query RAG, il modulo `backend/app/core/redaction.py` individua e sostituisce automaticamente pattern espliciti di password (`password: [REDACTED_PASSWORD]`), token Bearer (`Bearer [REDACTED_TOKEN]`), Google API key (`[REDACTED_API_KEY]`) e chiavi private, preservando integralmente il linguaggio naturale ordinario.
+- **Sicurezza Path e Dati:** Il parser della Knowledge Base convalida la radice dei file per prevenire directory traversal.
+- **Dati Non Attendibili:** Il testo recuperato dalla KB è marcato e trattato come dato di contesto non eseguibile, garantendo la separazione da future istruzioni di sistema.
+

@@ -52,6 +52,33 @@ class Settings(BaseSettings):
     GEMINI_DIAGNOSIS_MODEL: str = "gemini-2.5-flash"
     GEMINI_FINALIZATION_MODEL: str = "gemini-2.5-flash"
 
+    # RAG / Knowledge Base Settings (GOAL 03)
+    KNOWLEDGE_BASE_DIR: str = Field(
+        default="knowledge_base",
+        description="Path to Markdown knowledge base documents directory",
+    )
+    CHROMA_PERSIST_DIR: str = Field(
+        default="./data/chroma_db",
+        description="Persistent storage directory for ChromaDB vector index",
+    )
+    EMBEDDING_MODEL_NAME: str = Field(
+        default="BAAI/bge-m3",
+        description="HuggingFace model name for BGE-M3 dense embeddings",
+    )
+    EMBEDDING_DEVICE: str = Field(
+        default="cpu",
+        description="Device for embedding model inference (cpu or cuda)",
+    )
+    RAG_TOP_K: int = Field(
+        default=5,
+        description="Default number of search results to retrieve",
+    )
+    RAG_USE_FAKE_ENCODER: bool = Field(
+        default=False,
+        description="Use deterministic offline fake encoder instead of loading FlagEmbedding",
+    )
+
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

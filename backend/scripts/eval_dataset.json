@@ -1,0 +1,178 @@
+[
+  {
+    "id": "Q01",
+    "query": "Come posso reimpostare la mia password di dominio scaduta?",
+    "sub_queries": ["reset password account", "cambio credenziali self-service"],
+    "expected_doc_ids": ["KB-AUTH-001"],
+    "category": "technical",
+    "description": "Standard self-service password reset request"
+  },
+  {
+    "id": "Q02",
+    "query": "Ho inserito la password errata 5 volte e il mio account è bloccato, cosa devo fare?",
+    "sub_queries": ["sblocco account lockout", "durata blocco password tentativi"],
+    "expected_doc_ids": ["KB-AUTH-001"],
+    "category": "colloquial",
+    "description": "Account locked after failed login attempts"
+  },
+  {
+    "id": "Q03",
+    "query": "Quali sono i requisiti minimi di lunghezza e caratteri per la password aziendale?",
+    "sub_queries": ["complessità password", "lunghezza minima caratteri speciali"],
+    "expected_doc_ids": ["KB-AUTH-001"],
+    "category": "technical",
+    "description": "Password policy requirements"
+  },
+  {
+    "id": "Q04",
+    "query": "Come accedo alla posta elettronica aziendale dal browser di casa?",
+    "sub_queries": ["webmail outlook online", "accesso posta via web"],
+    "expected_doc_ids": ["KB-MAIL-001"],
+    "category": "technical",
+    "description": "Outlook web access"
+  },
+  {
+    "id": "Q05",
+    "query": "Outlook mi dice Disconnesso o Tentativo di connessione in corso e non ricevo email",
+    "sub_queries": ["outlook non sincronizza", "posta disconnessa lavora non in linea"],
+    "expected_doc_ids": ["KB-MAIL-001"],
+    "category": "colloquial",
+    "description": "Outlook disconnected status troubleshooting"
+  },
+  {
+    "id": "Q06",
+    "query": "Qual è il limite massimo per la dimensione degli allegati via email?",
+    "sub_queries": ["dimensione massima allegato posta", "quota casella exchange"],
+    "expected_doc_ids": ["KB-MAIL-001"],
+    "category": "technical",
+    "description": "Email attachment and quota size limits"
+  },
+  {
+    "id": "Q07",
+    "query": "Come mi collego alla VPN aziendale quando sono in smart working?",
+    "sub_queries": ["connessione secureconnect vpn", "accesso remoto lavoro agile"],
+    "expected_doc_ids": ["KB-NET-001"],
+    "category": "colloquial",
+    "description": "VPN connection setup for remote work"
+  },
+  {
+    "id": "Q08",
+    "query": "La VPN dà errore timeout di connessione al gateway vpn.azienda.it",
+    "sub_queries": ["impossibile connettersi gateway vpn", "timeout rete secureconnect"],
+    "expected_doc_ids": ["KB-NET-001"],
+    "category": "technical",
+    "description": "VPN gateway connection timeout"
+  },
+  {
+    "id": "Q09",
+    "query": "Cosa significa split tunneling sulla VPN aziendale e quali siti passano dalla rete dell'ufficio?",
+    "sub_queries": ["split tunneling vpn", "traffico internet domestico rete aziendale"],
+    "expected_doc_ids": ["KB-NET-001"],
+    "category": "technical",
+    "description": "VPN split tunneling policy"
+  },
+  {
+    "id": "Q10",
+    "query": "Come collego il mio computer alla rete Wi-Fi Azienda-Corporate in sede?",
+    "sub_queries": ["connettersi wifi aziendale", "rete wireless ufficio credenziali"],
+    "expected_doc_ids": ["KB-NET-002"],
+    "category": "technical",
+    "description": "Corporate Wi-Fi connection"
+  },
+  {
+    "id": "Q11",
+    "query": "Un fornitore esterno deve collegarsi a internet, come funziona la rete guest?",
+    "sub_queries": ["wifi ospiti captive portal", "accesso wifi visitatori sms"],
+    "expected_doc_ids": ["KB-NET-002"],
+    "category": "colloquial",
+    "description": "Guest Wi-Fi captive portal access"
+  },
+  {
+    "id": "Q12",
+    "query": "Il Wi-Fi mi dà Nessuna connessione a Internet e l'indirizzo IP comincia con 169.254",
+    "sub_queries": ["apipa ipconfig renew", "dhcp non rilascia indirizzo ip"],
+    "expected_doc_ids": ["KB-NET-002"],
+    "category": "technical",
+    "description": "APIPA self-assigned IP troubleshooting"
+  },
+  {
+    "id": "Q13",
+    "query": "Come configuro Microsoft Authenticator sul mio nuovo smartphone?",
+    "sub_queries": ["aggiungi account authenticator qr code", "mfa nuovo cellulare"],
+    "expected_doc_ids": ["KB-AUTH-002"],
+    "category": "technical",
+    "description": "MFA Microsoft Authenticator pairing on new phone"
+  },
+  {
+    "id": "Q14",
+    "query": "Ho perso il telefono e non riesco più a fare l'accesso a due fattori",
+    "sub_queries": ["smarrimento smartphone mfa", "temporary access pass tap service desk"],
+    "expected_doc_ids": ["KB-AUTH-002"],
+    "category": "colloquial",
+    "description": "Lost MFA device and TAP emergency pass"
+  },
+  {
+    "id": "Q15",
+    "query": "Che cos'è il number matching sulle notifiche dell'app di autenticazione?",
+    "sub_queries": ["verifica numero mfa fatigue", "digitare numero schermo authenticator"],
+    "expected_doc_ids": ["KB-AUTH-002"],
+    "category": "technical",
+    "description": "MFA number matching security mechanism"
+  },
+  {
+    "id": "Q16",
+    "query": "Come posso connettere l'unità di rete del mio dipartimento H: su Questo PC?",
+    "sub_queries": ["mapping disco h dipartimentale", "connetti unita di rete nas smb"],
+    "expected_doc_ids": ["KB-FILE-001"],
+    "category": "technical",
+    "description": "Department network drive mapping (H:)"
+  },
+  {
+    "id": "Q17",
+    "query": "Ricevo errore accesso negato o autorizzazioni insufficienti aprendo la cartella condivisa",
+    "sub_queries": ["permessi cartella rete", "richiesta autorizzazione file share gruppo active directory"],
+    "expected_doc_ids": ["KB-FILE-001"],
+    "category": "colloquial",
+    "description": "File share permission denied"
+  },
+  {
+    "id": "Q18",
+    "query": "Come installo Microsoft Teams o Chrome dal Company Portal senza password di amministratore?",
+    "sub_queries": ["portale aziendale intune installa app", "catalogo software approvato"],
+    "expected_doc_ids": ["KB-APP-001"],
+    "category": "technical",
+    "description": "Self-service software installation via Company Portal"
+  },
+  {
+    "id": "Q19",
+    "query": "Ho bisogno di una licenza speciale per Adobe Creative Cloud non a catalogo",
+    "sub_queries": ["richiesta nuovo software centro di costo", "approvazione licenza responsabile"],
+    "expected_doc_ids": ["KB-APP-001"],
+    "category": "colloquial",
+    "description": "Special software license request approval workflow"
+  },
+  {
+    "id": "Q20",
+    "query": "C'è un blocco generale di internet o della posta in tutta l'azienda?",
+    "sub_queries": ["status page incidenti disservizio outage", "verificare problemi generali it"],
+    "expected_doc_ids": ["KB-OPS-001"],
+    "category": "colloquial",
+    "description": "Company-wide outage checking status page"
+  },
+  {
+    "id": "Q21",
+    "query": "Perché non devo aprire un ticket se c'è già un incidente maggiore aperto sulla status page?",
+    "sub_queries": ["politica ticket duplicati", "segnalazione incidente noto"],
+    "expected_doc_ids": ["KB-OPS-001"],
+    "category": "technical",
+    "description": "Duplicate ticket policy during major incidents"
+  },
+  {
+    "id": "Q22",
+    "query": "Come posso prenotare i giorni di ferie o permesso sul portale HR?",
+    "sub_queries": ["richiesta ferie dipendenti", "giustificativo assenza risorse umane"],
+    "expected_doc_ids": [],
+    "category": "out_of_scope",
+    "description": "HR leave request out of IT scope"
+  }
+]

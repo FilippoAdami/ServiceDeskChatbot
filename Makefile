@@ -46,3 +46,15 @@ dev-backend:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+rag-index:
+	.venv/bin/python backend/scripts/index_kb.py
+
+rag-index-fake:
+	.venv/bin/python backend/scripts/index_kb.py --fake-encoder
+
+rag-eval:
+	.venv/bin/python backend/scripts/evaluate_rag.py
+
+rag-eval-offline:
+	.venv/bin/python backend/scripts/evaluate_rag.py --fake-encoder
