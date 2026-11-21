@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "./components/Header";
-import { EmployeePlaceholder } from "./components/EmployeePlaceholder";
-import { TechnicianPlaceholder } from "./components/TechnicianPlaceholder";
+import { EmployeeView } from "./components/EmployeeView";
+import { TechnicianView } from "./components/TechnicianView";
 import { useHealth } from "./hooks/useHealth";
 import type { ActiveView } from "./components/ViewSwitch";
 
@@ -28,7 +28,7 @@ export const App: React.FC = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
             >
-              <EmployeePlaceholder />
+              <EmployeeView />
             </motion.div>
           ) : (
             <motion.div
@@ -38,7 +38,7 @@ export const App: React.FC = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
             >
-              <TechnicianPlaceholder />
+              <TechnicianView />
             </motion.div>
           )}
         </AnimatePresence>
@@ -50,9 +50,14 @@ export const App: React.FC = () => {
             Service Desk AI Assistant • Architettura Locale (React + FastAPI + SQLite)
           </span>
           <div className="flex items-center gap-3">
-            <span>Milestone G01: Fondazioni Eseguibili</span>
+            <span>Milestone G02: Modello Dati & Persistenza</span>
             <span>•</span>
-            <span>UTC {healthState.data?.timestamp ? new Date(healthState.data.timestamp).toLocaleTimeString() : "--:--:--"}</span>
+            <span>
+              UTC{" "}
+              {healthState.data?.timestamp
+                ? new Date(healthState.data.timestamp).toLocaleTimeString()
+                : "--:--:--"}
+            </span>
           </div>
         </div>
       </footer>

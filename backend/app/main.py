@@ -7,7 +7,9 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.conversations import router as conversations_router
 from backend.app.api.health import router as health_router
+from backend.app.api.requests import router as requests_router
 from backend.app.config import Settings, get_settings
 from backend.app.db.session import init_db
 
@@ -68,6 +70,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Register API routers
     app.include_router(health_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(conversations_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(requests_router, prefix=app_settings.API_V1_PREFIX)
 
     @app.get("/", tags=["Root"])
     def root_info() -> dict[str, str]:

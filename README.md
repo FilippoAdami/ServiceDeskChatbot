@@ -1,7 +1,7 @@
 # Service Desk AI Assistant — Prototipo Locale
 
 Assistente IT interno per il supporto e la diagnosi autonoma delle problematiche aziendali ricorrenti (500 dipendenti).  
-Questo repository implementa la base locale, modulare e testata secondo le specifiche di **GOAL 01**.
+Il repository implementa le fondazioni e la persistenza locale secondo le specifiche di **GOAL 01** e **GOAL 02**.
 
 ---
 
@@ -10,7 +10,7 @@ Questo repository implementa la base locale, modulare e testata secondo le speci
 - **Linux / macOS / WSL2**
 - **Python:** 3.11+ (testato su Python 3.12.3)
 - **Node.js:** 18+ o 20+ (testato su Node v20.20.2 e npm 10.8.2)
-- Nessun database server, servizio cloud o API key esterna richiesti per avviare o testare G01.
+- Nessun database server esterno, servizio cloud o chiave API Gemini richiesti per eseguire, migrare o testare G01/G02.
 
 ---
 
@@ -20,32 +20,47 @@ Questo repository implementa la base locale, modulare e testata secondo le speci
 .
 ├── .env.example          # Template delle variabili d'ambiente (backend e frontend)
 ├── .gitignore            # Regole di esclusione per cache, log, DB, venv, node_modules
+├── Makefile              # Comandi unificati (make test, make lint, make check, make migrate)
 ├── README.md             # Questa guida rapida
+├── alembic.ini           # Configurazione migrazioni database Alembic
 ├── backend/
+│   ├── alembic/          # Script e versioni di migrazione dello schema
+│   │   ├── env.py
+│   │   └── versions/
+│   │       └── 001_initial_schema.py # Migrazione iniziale tabelle G01/G02
 │   ├── app/
 │   │   ├── api/
-│   │   │   └── health.py # Endpoint GET /api/health tipizzato
-│   │   ├── config.py     # Impostazioni centralizzate con validazione Pydantic
+│   │   │   ├── health.py         # GET /api/health
+│   │   │   ├── conversations.py  # CRUD conversazioni, messaggi e richieste
+│   │   │   └── requests.py       # Consultazione richieste IT (vista tecnico)
+│   │   ├── core/
+│   │   │   ├── redaction.py      # Sanitizzazione automatica password e token
+│   │   │   └── audit.py          # Helper per emissione sincrona di AuditEvent
 │   │   ├── db/
-│   │   │   ├── base.py   # DeclarativeBase SQLAlchemy e tabella bootstrap
-│   │   │   └── session.py# Engine SQLite persistente, session factory e check connessione
-│   │   └── main.py       # FastAPI application, CORS ristretto e lifespan
-│   ├── tests/            # Test suite offline per health, DB persistenza e config
-│   ├── pyproject.toml    # Configurazione di pytest, ruff e mypy
-│   ├── requirements.txt  # Dipendenze runtime di produzione
-│   └── requirements-dev.txt # Dipendenze per test e qualità
+│   │   │   ├── base.py           # DeclarativeBase e SchemaBootstrap
+│   │   │   ├── models.py         # Modelli Conversation, Message, SupportRequest, AuditEvent
+│   │   │   └── session.py        # SQLite Engine, PRAGMA foreign_keys=ON, runner migrazioni
+│   │   ├── schemas/              # Schemi Pydantic tipizzati per request/response
+│   │   ├── config.py             # Settings tipizzati con Pydantic
+│   │   └── main.py               # FastAPI application e CORS
+│   └── tests/                    # Suite completa test unitari, integration e persistenza
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # Header, ViewSwitch, ConnectionBadge, Placeholders
-│   │   ├── hooks/        # useHealth (interrogazione reale API HTTP)
-│   │   ├── types/        # Tipi TypeScript per risposte API
-│   │   ├── test/         # Test Vitest per switch viste e badge connessione
-│   │   ├── App.tsx       # Shell applicativa responsive
-│   │   └── main.tsx      # Entry point React
-│   ├── package.json      # Script e dipendenze React, Vite, Tailwind, Vitest, Motion
-│   ├── vite.config.ts    # Configurazione Vite con proxy /api verso 127.0.0.1:8000
-│   └── tailwind.config.js# Design system moderno e ad alto contrasto
-└── data/                 # Directory creata automaticamente per il database SQLite
+│   │   ├── api/client.ts         # Client HTTP tipizzato verso il backend
+│   │   ├── components/
+│   │   │   ├── Header.tsx        # Header, brand e status badge
+│   │   │   ├── ViewSwitch.tsx    # Switch Dipendente / Tecnico
+│   │   │   ├── ConnectionBadge.tsx # Indicatore connessione API e DB
+│   │   │   ├── EmployeeView.tsx  # Vista Dipendente: chat thread e segnalazione problemi
+│   │   │   ├── TechnicianView.tsx# Vista Tecnico: tabella richieste IT e filtri
+│   │   │   └── NewRequestModal.tsx # Modale per registrazione problemi IT
+│   │   ├── hooks/useHealth.ts    # Polling reale stato API
+│   │   ├── test/                 # Test Vitest per viste e componenti
+│   │   ├── App.tsx               # Shell applicativa principale
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+└── data/                         # Directory database SQLite persistente
 ```
 
 ---
@@ -75,93 +90,76 @@ cd ..
 
 ---
 
-## 4. Avvio dei Servizi Locali
+## 4. Migrazioni del Database
 
-### 4.1 Avviare il Backend FastAPI
+Le migrazioni sono gestite tramite **Alembic** e vengono eseguite automaticamente all'avvio del backend.  
+Per applicarle manualmente:
+```bash
+source .venv/bin/activate
+alembic upgrade head
+# oppure: make migrate
+```
+
+---
+
+## 5. Avvio dei Servizi Locali
+
+### 5.1 Avviare il Backend FastAPI
 In un terminale (con il virtualenv attivo):
 ```bash
 source .venv/bin/activate
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+# oppure: make dev-backend
 ```
 - API Health: `http://127.0.0.1:8000/api/health`
 - Documentazione interattiva OpenAPI (Swagger): `http://127.0.0.1:8000/docs`
 
-### 4.2 Avviare il Frontend React (Vite)
+### 5.2 Avviare il Frontend React (Vite)
 In un secondo terminale:
 ```bash
 cd frontend
 npm run dev
+# oppure: make dev-frontend
 ```
 - Interfaccia Web: `http://localhost:5173`
-- La shell si connette in tempo reale all'API FastAPI e visualizza lo stato del database SQLite (`DB Attivo`) e la latenza in millisecondi.
 
 ---
 
-## 5. Esecuzione dei Test e Controlli di Qualità
+## 6. Esecuzione dei Test e Controlli di Qualità
 
 Tutti i test sono **offline, deterministici e non consumano quote esterne**.
 
-### 5.1 Test Backend (Pytest, Ruff, Mypy)
+### 6.1 Verifica Completa in un Solo Comando
 ```bash
-source .venv/bin/activate
-
-# Esecuzione test unitari e di persistenza SQLite
-PYTHONPATH=. pytest backend/tests
-
-# Linting del codice backend
-ruff check backend
-
-# Controllo statico dei tipi
-mypy backend
+make check
 ```
-
-### 5.2 Test Frontend (Vitest, ESLint, TypeScript, Build)
-```bash
-cd frontend
-
-# Test unitari dei componenti e del cambio vista (Vitest)
-npm test
-
-# Linting ESLint
-npm run lint
-
-# Type checking TypeScript
-npm run type-check
-
-# Build di produzione
-npm run build
-```
+Esegue sequenzialmente:
+1. `pytest backend/tests` (34 test passati)
+2. `vitest` (14 test passati in 5 test suite)
+3. `ruff check backend` (0 errori)
+4. `eslint .` (0 errori)
+5. `mypy backend` (32 file controllati, 0 errori)
+6. `tsc --noEmit` (0 errori)
+7. `vite build` (build bundle di produzione)
 
 ---
 
-## 6. Porte e Indirizzi di Default
+## 7. Contratti API REST Principali (G02)
 
-| Servizio | URL / Indirizzo | Descrizione |
+| Metodo | Endpoint | Descrizione |
 |---|---|---|
-| **Frontend UI** | `http://localhost:5173` | Applicazione React con switch Dipendente/Tecnico |
-| **Backend API** | `http://127.0.0.1:8000/api/health` | Endpoint JSON tipizzato di stato |
-| **OpenAPI Docs** | `http://127.0.0.1:8000/docs` | Documentazione Swagger automatica |
-| **SQLite DB** | `./data/service_desk.db` | File persistente creato automaticamente |
+| `GET` | `/api/health` | Controllo disponibilità backend e connettività SQLite |
+| `POST` | `/api/conversations` | Creazione di una nuova conversazione (`title`, `user_id`) |
+| `GET` | `/api/conversations` | Elenco thread ordinati per ultimo aggiornamento (paginato) |
+| `GET` | `/api/conversations/{id}` | Dettaglio thread con messaggi ordinati e richieste collegate |
+| `POST` | `/api/conversations/{id}/messages` | Aggiunta messaggio utente (`role="user"`) con sanitizzazione segreti |
+| `POST` | `/api/conversations/{id}/requests` | Registrazione problema IT associato al thread |
+| `GET` | `/api/requests` | Consultazione richieste per i tecnici con filtro per stato |
+| `GET` | `/api/requests/{id}` | Dettaglio di una singola richiesta |
 
 ---
 
-## 7. Variabili di Configurazione (.env)
+## 8. Note di Sicurezza e Sanitizzazione
 
-| Variabile | Default | Descrizione |
-|---|---|---|
-| `ENVIRONMENT` | `development` | Nome ambiente di runtime (`development`, `test`, `production`) |
-| `DATABASE_URL` | `sqlite:///./data/service_desk.db` | Connessione database SQLite persistente |
-| `CORS_ORIGINS` | `http://localhost:5173,...` | Origini ammesse per le richieste cross-origin |
-| `GEMINI_API_KEY` | *(vuoto)* | Opzionale per G01; gestito unicamente lato server |
-| `VITE_API_URL` | `http://localhost:8000` | URL del backend per il proxy di sviluppo |
-
----
-
-## 8. Risoluzione dei Problemi Comuni (Troubleshooting)
-
-- **Porta 8000 già occupata:**  
-  Avviare uvicorn su una porta alternativa (es. `--port 8001`) e aggiornare `VITE_API_URL` in `.env` e nel file `frontend/vite.config.ts`.
-- **Errore di import `backend` con pytest:**  
-  Assicurarsi di eseguire `PYTHONPATH=. pytest backend/tests` dalla directory root del progetto.
-- **Badge API Offline nel browser:**  
-  Verificare che il server FastAPI sia attivo sulla porta 8000 e che `curl -i http://127.0.0.1:8000/api/health` restituisca HTTP 200.
+- **Redazione Credenziali:** Prima della persistenza in SQLite, il modulo `backend/app/core/redaction.py` individua e sostituisce automaticamente pattern espliciti di password (`password: [REDACTED_PASSWORD]`), token Bearer (`Bearer [REDACTED_TOKEN]`), Google API key (`[REDACTED_API_KEY]`) e chiavi private, preservando integralmente il linguaggio naturale ordinario.
+- **Audit Logging:** Ogni azione (`conversation_created`, `message_sent`, `support_request_created`) produce un `AuditEvent` sincrono con payload sanificato (mai testi integrali dei messaggi né credenziali).

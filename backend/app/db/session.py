@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Generator, Optional
+import sqlite3
+from typing import Any, Generator, Optional
 
-from sqlalchemy import Engine, create_engine, select, text
+from sqlalchemy import Engine, create_engine, event, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.config import get_settings
@@ -13,6 +14,15 @@ logger = logging.getLogger(__name__)
 
 _engine: Optional[Engine] = None
 _SessionFactory: Optional[sessionmaker[Session]] = None
+
+
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
+    """Enforce SQLite foreign key constraints and WAL mode where applicable."""
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def get_engine() -> Engine:
@@ -77,13 +87,38 @@ def check_db_connection(engine: Optional[Engine] = None) -> bool:
         return False
 
 
-def init_db(engine: Optional[Engine] = None) -> None:
-    """Initialize database schema and ensure bootstrap entry exists."""
+def run_migrations(engine: Optional[Engine] = None) -> None:
+    """Run Alembic migrations programmatically to head."""
+    from pathlib import Path
+
+    from alembic.config import Config
+
+    from alembic import command
+
     eng = engine or get_engine()
     settings = get_settings()
 
-    # Create tables if not present
-    Base.metadata.create_all(bind=eng)
+    ini_path = Path(__file__).resolve().parent.parent.parent.parent / "alembic.ini"
+    alembic_cfg = Config(str(ini_path))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+    with eng.connect() as connection:
+        alembic_cfg.attributes["connection"] = connection
+        command.upgrade(alembic_cfg, "head")
+
+
+def init_db(engine: Optional[Engine] = None) -> None:
+    """Initialize database schema, tables, and ensure bootstrap entry exists."""
+    import backend.app.db.models  # noqa: F401
+
+    eng = engine or get_engine()
+    settings = get_settings()
+
+    try:
+        run_migrations(eng)
+    except Exception as exc:
+        logger.warning(f"Alembic migration skipped or failed ({exc}), applying create_all fallback")
+        Base.metadata.create_all(bind=eng)
 
     # Verify/create bootstrap record
     factory = sessionmaker(bind=eng, expire_on_commit=False)

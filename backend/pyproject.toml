@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "sqlalchemy>=2.0.36",
+    "alembic>=1.13.0",
     "pydantic-settings>=2.6.0",
     "pydantic>=2.9.0",
     "python-dotenv>=1.0.0",
@@ -22,7 +23,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]

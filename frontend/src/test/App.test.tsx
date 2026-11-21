@@ -5,18 +5,70 @@ import App from "../App";
 describe("App shell and view switching", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // Default fetch mock returning 200 OK
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: "ok",
-        database: "connected",
-        timestamp: "2026-11-21T19:00:00Z",
-        version: "0.1.0",
-        environment: "development",
-        detail: null,
-      }),
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/api/health")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: "ok",
+            database: "connected",
+            timestamp: "2026-11-21T19:00:00Z",
+            version: "0.1.0",
+            environment: "development",
+            detail: null,
+          }),
+        });
+      }
+      if (url.includes("/api/conversations")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [
+              {
+                id: "conv_test_1",
+                user_id: "user_demo_01",
+                title: "Problema accesso email",
+                status: "active",
+                created_at: "2026-11-21T19:00:00Z",
+                updated_at: "2026-11-21T19:00:00Z",
+                message_count: 1,
+                request_count: 0,
+              },
+            ],
+            total: 1,
+            limit: 50,
+            offset: 0,
+          }),
+        });
+      }
+      if (url.includes("/api/requests")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [],
+            total: 0,
+            limit: 50,
+            offset: 0,
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: "conv_test_1",
+          user_id: "user_demo_01",
+          title: "Problema accesso email",
+          status: "active",
+          created_at: "2026-11-21T19:00:00Z",
+          updated_at: "2026-11-21T19:00:00Z",
+          messages: [],
+          requests: [],
+        }),
+      });
     });
   });
 
@@ -26,13 +78,9 @@ describe("App shell and view switching", () => {
     // Check title and brand
     expect(screen.getByText("Service Desk AI")).toBeInTheDocument();
 
-    // Default view is employee
-    expect(
-      screen.getByText("Vista Dipendente — Assistenza IT")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Canale di Supporto Diretto per Dipendenti")
-    ).toBeInTheDocument();
+    // Default view shows EmployeeView components
+    expect(screen.getByText("Conversazioni")).toBeInTheDocument();
+    expect(screen.getByText(/Assistente AI non attivo in questa versione/i)).toBeInTheDocument();
 
     // Verify online badge is displayed after health check completes
     await waitFor(() => {
@@ -46,24 +94,19 @@ describe("App shell and view switching", () => {
     // Verify view changed without page reload
     await waitFor(() => {
       expect(
-        screen.getByText("Vista Tecnico IT — Console Operativa")
+        screen.getByText("Console Tecnico IT — Richieste Supporto Reali")
       ).toBeInTheDocument();
     });
     expect(
-      screen.getByText("Console di Gestione e Supervisione IT")
+      screen.getByText("Elenco Problematiche IT Registrate")
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Canale di Supporto Diretto per Dipendenti")
-    ).not.toBeInTheDocument();
 
     // Switch back to Employee view
     const empTab = screen.getByRole("tab", { name: /Vista Dipendente/i });
     fireEvent.click(empTab);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Vista Dipendente — Assistenza IT")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Conversazioni")).toBeInTheDocument();
     });
   });
 

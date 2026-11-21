@@ -23,6 +23,9 @@ test-backend:
 test-frontend:
 	cd frontend && npm test
 
+migrate:
+	.venv/bin/alembic upgrade head
+
 test: test-backend test-frontend
 
 lint:
