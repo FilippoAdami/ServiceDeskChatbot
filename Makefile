@@ -19,6 +19,7 @@ install:
 	.venv/bin/pip install --upgrade pip
 	.venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 	cd frontend && npm install
+	mkdir -p data
 
 test-backend:
 	PYTHONPATH=. .venv/bin/pytest backend/tests
@@ -27,6 +28,7 @@ test-frontend:
 	cd frontend && npm test
 
 migrate:
+	mkdir -p data
 	.venv/bin/alembic upgrade head
 
 test: test-backend test-frontend

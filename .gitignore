@@ -50,7 +50,8 @@ frontend/node_modules/
 *.db
 *.sqlite
 *.sqlite3
-data/
+data/*
+!data/.gitkeep
 chroma/
 chroma_db/
 

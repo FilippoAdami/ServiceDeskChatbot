@@ -25,7 +25,17 @@ def get_url() -> str:
     return db_url
 
 
+def _ensure_sqlite_parent_dir() -> None:
+    """Ensure parent directory exists for file-based SQLite databases."""
+    settings = get_settings()
+    if settings.is_sqlite and ":memory:" not in settings.DATABASE_URL:
+        db_path = settings.sqlite_file_path
+        if db_path is not None:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+
+
 def run_migrations_offline() -> None:
+    _ensure_sqlite_parent_dir()
     url = get_url()
     context.configure(
         url=url,
@@ -52,6 +62,8 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
         return
+
+    _ensure_sqlite_parent_dir()
 
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = get_url()
