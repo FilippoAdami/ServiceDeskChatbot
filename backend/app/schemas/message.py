@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,6 +25,7 @@ class MessageResponse(BaseModel):
     conversation_id: str
     role: str
     content: str
+    metadata_json: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

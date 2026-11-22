@@ -55,6 +55,52 @@ describe("App shell and view switching", () => {
           }),
         });
       }
+      if (url.includes("/api/tickets")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [],
+            total: 0,
+            limit: 50,
+            offset: 0,
+          }),
+        });
+      }
+      if (url.includes("/api/incidents")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [],
+            total: 0,
+            limit: 50,
+            offset: 0,
+          }),
+        });
+      }
+      if (url.includes("/api/audit/events")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [],
+            total: 0,
+            limit: 100,
+            offset: 0,
+          }),
+        });
+      }
+      if (url.includes("/api/audit/conversations")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [],
+            total: 0,
+          }),
+        });
+      }
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -80,7 +126,7 @@ describe("App shell and view switching", () => {
 
     // Default view shows EmployeeView components
     expect(screen.getByText("Conversazioni")).toBeInTheDocument();
-    expect(screen.getByText(/Assistente AI non attivo in questa versione/i)).toBeInTheDocument();
+    expect(screen.getByText("Nuova Chat")).toBeInTheDocument();
 
     // Verify online badge is displayed after health check completes
     await waitFor(() => {
@@ -98,8 +144,18 @@ describe("App shell and view switching", () => {
       ).toBeInTheDocument();
     });
     expect(
-      screen.getByText("Elenco Problematiche IT Registrate")
+      screen.getByText("Ticket Service Desk")
     ).toBeInTheDocument();
+
+    // Switch to Debug & Audit view
+    const debugTab = screen.getByRole("tab", { name: /Debug & Audit/i });
+    fireEvent.click(debugTab);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Console Live Debug & Audit Eventi")
+      ).toBeInTheDocument();
+    });
 
     // Switch back to Employee view
     const empTab = screen.getByRole("tab", { name: /Vista Dipendente/i });

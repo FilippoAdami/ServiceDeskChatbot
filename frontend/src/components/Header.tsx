@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   healthState,
 }) => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-card/75 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-card/50 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         {/* Brand / Title */}
         <div className="flex items-center gap-3">

@@ -98,9 +98,13 @@ def test_full_lifecycle_persistence_across_restart(tmp_path: Path) -> None:
     # Step 4: Verify audit events persisted at DB level
     engine = create_engine(f"sqlite:///{db_file}")
     with sessionmaker(bind=engine)() as session:
-        events = session.execute(
-            select(AuditEvent).where(AuditEvent.conversation_id == conv_id).order_by(AuditEvent.created_at.asc())
-        ).scalars().all()
+        events = (
+            session.execute(
+                select(AuditEvent).where(AuditEvent.conversation_id == conv_id).order_by(AuditEvent.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
 
         assert len(events) >= 3
         event_types = [e.event_type for e in events]

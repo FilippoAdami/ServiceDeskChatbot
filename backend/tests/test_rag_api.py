@@ -38,7 +38,7 @@ Se ricevi IP 169.254 esegui ipconfig renew.
 
     encoder = DeterministicFakeEncoder(dimension=1024)
     store = ChromaVectorStore(
-        persist_dir=":memory:",
+        persist_dir=str(tmp_path / "chroma"),
         model_name=encoder.model_name,
         dimension=1024,
     )

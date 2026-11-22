@@ -8,7 +8,7 @@ from backend.app.config import Settings
 
 def test_default_settings() -> None:
     """Verify default settings values and optional Gemini API key."""
-    settings = Settings()
+    settings = Settings(GEMINI_API_KEY=None)
     assert settings.APP_NAME == "Service Desk AI Assistant"
     assert settings.APP_VERSION == "0.1.0"
     assert settings.GEMINI_API_KEY is None

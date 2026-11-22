@@ -38,6 +38,8 @@ class SupportRequestResponse(BaseModel):
     initial_category: Optional[str] = None
     final_category: Optional[str] = None
     status: str
+    phase: str = "triage"
+    escalation_requested: bool = False
     outcome: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -52,3 +54,13 @@ class SupportRequestListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ConfirmResolutionRequest(BaseModel):
+    """Payload for confirming or auto-closing a bot-resolved support request."""
+
+    confirmed_by_user: bool = Field(
+        default=True,
+        description="True if explicitly confirmed by user click, False if triggered by auto-timer expiry",
+    )
+

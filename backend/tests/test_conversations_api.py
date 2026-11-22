@@ -100,13 +100,18 @@ def test_add_message_with_secret_redaction_and_audit(client: TestClient) -> None
 
     # Query DB to inspect the AuditEvent directly
     from backend.app.db.session import get_engine
+
     engine = get_engine()
     with Session(engine) as session:
-        events = session.execute(
-            select(AuditEvent)
-            .where(AuditEvent.conversation_id == conv_id)
-            .where(AuditEvent.event_type == "message_sent")
-        ).scalars().all()
+        events = (
+            session.execute(
+                select(AuditEvent)
+                .where(AuditEvent.conversation_id == conv_id)
+                .where(AuditEvent.event_type == "message_sent")
+            )
+            .scalars()
+            .all()
+        )
 
         assert len(events) == 1
         audit = events[0]

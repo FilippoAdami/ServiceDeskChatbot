@@ -43,14 +43,31 @@ class Settings(BaseSettings):
         description="SQLAlchemy database URL (defaults to persistent local SQLite file)",
     )
 
-    # LLM Settings (optional in G01, required in future goals)
+    # LLM Settings (GOAL 04)
     GEMINI_API_KEY: Optional[str] = Field(
         default=None,
-        description="Google Gemini API Key (optional for G01; server will not crash if missing)",
+        description="Google Gemini API Key (server will not crash if missing; UI will reflect unconfigured state)",
     )
-    GEMINI_TRIAGE_MODEL: str = "gemini-2.5-flash"
-    GEMINI_DIAGNOSIS_MODEL: str = "gemini-2.5-flash"
-    GEMINI_FINALIZATION_MODEL: str = "gemini-2.5-flash"
+    GEMINI_TRIAGE_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_DIAGNOSIS_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_FINALIZATION_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_TRIAGE_THINKING: str = Field(
+        default="medium",
+        description="Thinking level for triage (low, medium, high)",
+    )
+    GEMINI_DIAGNOSIS_THINKING: str = Field(
+        default="high",
+        description="Thinking level for diagnosis (low, medium, high)",
+    )
+    GEMINI_FINALIZATION_THINKING: str = Field(
+        default="medium",
+        description="Thinking level for finalization (low, medium, high)",
+    )
+    GEMINI_TEMPERATURE: float = Field(default=0.2, ge=0.0, le=1.0)
+    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=4096, ge=128, le=8192)
+    GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, ge=5.0, le=120.0)
+    GEMINI_MAX_RETRIES: int = Field(default=2, ge=0, le=5)
+    AGENT_CONTEXT_WINDOW_TURNS: int = Field(default=10, ge=2, le=50)
 
     # RAG / Knowledge Base Settings (GOAL 03)
     KNOWLEDGE_BASE_DIR: str = Field(
@@ -73,11 +90,16 @@ class Settings(BaseSettings):
         default=5,
         description="Default number of search results to retrieve",
     )
+    RAG_MIN_RELEVANCE_SCORE: float = Field(
+        default=0.48,
+        description=(
+            "Minimum similarity score threshold below which retrieved chunks are considered irrelevant and ignored"
+        ),
+    )
     RAG_USE_FAKE_ENCODER: bool = Field(
         default=False,
         description="Use deterministic offline fake encoder instead of loading FlagEmbedding",
     )
-
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -103,8 +125,7 @@ class Settings(BaseSettings):
         valid_prefixes = ("sqlite:///", "sqlite+pysqlite:///", "postgresql://", "postgresql+psycopg2://")
         if not any(v_stripped.startswith(prefix) for prefix in valid_prefixes):
             raise ValueError(
-                f"Unsupported database scheme in DATABASE_URL: '{v_stripped}'. "
-                f"Must start with one of {valid_prefixes}"
+                f"Unsupported database scheme in DATABASE_URL: '{v_stripped}'. Must start with one of {valid_prefixes}"
             )
         return v_stripped
 

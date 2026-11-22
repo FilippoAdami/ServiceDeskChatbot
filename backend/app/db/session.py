@@ -136,6 +136,11 @@ def init_db(engine: Optional[Engine] = None) -> None:
             session.commit()
             logger.info(f"Database schema initialized with version {settings.APP_VERSION}")
 
+        # Seed demo incidents idempotently
+        from backend.app.db.seeds import seed_demo_incidents
+
+        seed_demo_incidents(session)
+
 
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency for obtaining a database session."""

@@ -14,7 +14,7 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("account");
+  const [category, setCategory] = useState("Reset Password");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,12 +101,10 @@ export const NewRequestModal: React.FC<NewRequestModalProps> = ({
               onChange={(e) => setCategory(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
             >
-              <option value="account">Account & Credenziali (password, login)</option>
-              <option value="email">Posta Elettronica (Outlook, recapito)</option>
-              <option value="network">Rete & VPN (Wi-Fi, connessione aziendale)</option>
-              <option value="software">Software & Applicativi (Office, CRM, ERP)</option>
-              <option value="hardware">Hardware & Periferiche (PC, monitor, stampanti)</option>
-              <option value="other">Altro</option>
+              <option value="Reset Password">Reset Password & Credenziali</option>
+              <option value="Problemi Email">Problemi Email & Outlook</option>
+              <option value="Malfunzionamenti Software">Malfunzionamenti Software & PC</option>
+              <option value="Richiesta Generica">Richiesta Generica di Supporto</option>
             </select>
           </div>
 

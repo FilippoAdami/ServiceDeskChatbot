@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("index_kb")
 
 
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index knowledge base documents into ChromaDB")
     parser.add_argument(
@@ -71,7 +70,6 @@ def main() -> None:
             model_name=settings.EMBEDDING_MODEL_NAME,
             device=settings.EMBEDDING_DEVICE,
         )
-
 
     vector_store = ChromaVectorStore(
         persist_dir=persist_dir,

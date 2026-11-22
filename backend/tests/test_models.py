@@ -32,6 +32,7 @@ def db_session(tmp_path: Path):
 
     # Create session with foreign keys enabled
     from backend.app.db.session import get_engine
+
     engine = get_engine()
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     session = session_factory()
@@ -65,9 +66,7 @@ def test_create_conversation_and_messages(db_session) -> None:
     db_session.add_all([msg1, msg2])
     db_session.commit()
 
-    reloaded = db_session.execute(
-        select(Conversation).where(Conversation.id == conv.id)
-    ).scalar_one()
+    reloaded = db_session.execute(select(Conversation).where(Conversation.id == conv.id)).scalar_one()
 
     assert len(reloaded.messages) == 2
     assert reloaded.messages[0].content == "Non riesco ad accedere alla casella di posta."
@@ -110,9 +109,7 @@ def test_multiple_support_requests_in_conversation(db_session) -> None:
     db_session.add_all([req1, req2])
     db_session.commit()
 
-    reloaded = db_session.execute(
-        select(Conversation).where(Conversation.id == conv.id)
-    ).scalar_one()
+    reloaded = db_session.execute(select(Conversation).where(Conversation.id == conv.id)).scalar_one()
     assert len(reloaded.requests) == 2
 
 
@@ -154,8 +151,6 @@ def test_audit_event_creation(db_session) -> None:
     db_session.add(evt)
     db_session.commit()
 
-    reloaded = db_session.execute(
-        select(AuditEvent).where(AuditEvent.id == evt.id)
-    ).scalar_one()
+    reloaded = db_session.execute(select(AuditEvent).where(AuditEvent.id == evt.id)).scalar_one()
     assert reloaded.event_type == "conversation_created"
     assert reloaded.payload["user_id"] == "user_demo_01"

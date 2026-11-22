@@ -7,10 +7,15 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.audit import router as audit_router
 from backend.app.api.conversations import router as conversations_router
 from backend.app.api.health import router as health_router
+from backend.app.api.incidents import router as incidents_router
+from backend.app.api.kb_proposals import router as kb_proposals_router
 from backend.app.api.knowledge import router as knowledge_router
 from backend.app.api.requests import router as requests_router
+from backend.app.api.tech_chat import router as tech_chat_router
+from backend.app.api.tickets import router as tickets_router
 from backend.app.config import Settings, get_settings
 from backend.app.db.session import init_db
 
@@ -56,9 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Restrict CORS to explicitly configured development origins
     cors_origins = (
-        app_settings.CORS_ORIGINS
-        if isinstance(app_settings.CORS_ORIGINS, list)
-        else [app_settings.CORS_ORIGINS]
+        app_settings.CORS_ORIGINS if isinstance(app_settings.CORS_ORIGINS, list) else [app_settings.CORS_ORIGINS]
     )
 
     app.add_middleware(
@@ -74,7 +77,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(conversations_router, prefix=app_settings.API_V1_PREFIX)
     app.include_router(requests_router, prefix=app_settings.API_V1_PREFIX)
     app.include_router(knowledge_router, prefix=app_settings.API_V1_PREFIX)
-
+    app.include_router(tickets_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(tech_chat_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(kb_proposals_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(incidents_router, prefix=app_settings.API_V1_PREFIX)
+    app.include_router(audit_router, prefix=app_settings.API_V1_PREFIX)
 
     @app.get("/", tags=["Root"])
     def root_info() -> dict[str, str]:

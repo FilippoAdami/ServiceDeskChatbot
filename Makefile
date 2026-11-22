@@ -10,6 +10,9 @@ help:
 	@echo "  make check           Run all quality checks (tests, lint, typecheck, build)"
 	@echo "  make dev-backend     Start FastAPI backend server on port 8000"
 	@echo "  make dev-frontend    Start Vite frontend dev server on port 5173"
+	@echo "  make rag-eval        Run semantic RAG benchmark with real BGE-M3"
+	@echo "  make rag-eval-offline Run deterministic offline RAG benchmark"
+	@echo "  make reset-demo      Safely reset database and demo data to initial state"
 
 install:
 	python3 -m venv .venv
@@ -58,3 +61,6 @@ rag-eval:
 
 rag-eval-offline:
 	.venv/bin/python backend/scripts/evaluate_rag.py --fake-encoder
+
+reset-demo:
+	.venv/bin/python backend/scripts/reset_demo.py --confirm

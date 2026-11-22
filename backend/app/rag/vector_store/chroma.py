@@ -45,7 +45,6 @@ class ChromaVectorStore(BaseVectorStore):
 
         self._collection = self._get_or_create_collection()
 
-
     def _get_or_create_collection(self) -> Any:
         metadata = {
             "hnsw:space": "cosine",
@@ -68,7 +67,6 @@ class ChromaVectorStore(BaseVectorStore):
                 name=self._collection_name,
                 metadata=metadata,
             )
-
 
     def add_chunks(self, chunks: List[KBChunk], embeddings: List[List[float]]) -> None:
         if not chunks:
@@ -190,4 +188,3 @@ class ChromaVectorStore(BaseVectorStore):
         except Exception:
             pass
         self._collection = self._get_or_create_collection()
-

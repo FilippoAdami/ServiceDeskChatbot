@@ -52,9 +52,7 @@ def test_migration_on_existing_g01_database(tmp_path: Path) -> None:
         )
         """
     )
-    cursor.execute(
-        "INSERT INTO schema_bootstrap (component, version) VALUES ('core', '0.1.0')"
-    )
+    cursor.execute("INSERT INTO schema_bootstrap (component, version) VALUES ('core', '0.1.0')")
     conn.commit()
     conn.close()
 

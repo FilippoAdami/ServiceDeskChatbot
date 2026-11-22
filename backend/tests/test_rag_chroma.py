@@ -12,7 +12,6 @@ def test_chroma_store_in_memory() -> None:
         collection_name="test_chroma_store",
     )
 
-
     assert store.count_chunks() == 0
     assert store.get_indexed_doc_ids() == set()
 

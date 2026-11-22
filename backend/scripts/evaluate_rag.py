@@ -107,9 +107,7 @@ def run_evaluation(
     mrr_at_k = (statistics.mean(reciprocal_ranks)) if reciprocal_ranks else 0.0
 
     p50_latency = statistics.median(latencies_ms) if latencies_ms else 0.0
-    p95_latency = (
-        statistics.quantiles(latencies_ms, n=20)[18] if len(latencies_ms) >= 20 else max(latencies_ms)
-    )
+    p95_latency = statistics.quantiles(latencies_ms, n=20)[18] if len(latencies_ms) >= 20 else max(latencies_ms)
     mean_latency = statistics.mean(latencies_ms) if latencies_ms else 0.0
 
     summary = {
@@ -197,7 +195,6 @@ def main() -> None:
             model_name=settings.EMBEDDING_MODEL_NAME,
             device=settings.EMBEDDING_DEVICE,
         )
-
 
     vector_store = ChromaVectorStore(
         persist_dir=persist_dir,

@@ -44,10 +44,22 @@ class BGEM3Encoder(BaseEmbeddingEncoder):
                 self._use_fp16,
             )
             try:
+                from pathlib import Path
+
                 from FlagEmbedding import BGEM3FlagModel  # type: ignore[import-untyped]
 
+                model_target = self._model_name
+                # Prefer local snapshot directory to prevent re-downloading unnecessary ONNX weights
+                if model_target == "BAAI/bge-m3":
+                    snapshot_dir = Path.home() / ".cache/huggingface/hub/models--BAAI--bge-m3/snapshots"
+                    if snapshot_dir.exists():
+                        snapshots = sorted(list(snapshot_dir.iterdir()), reverse=True)
+                        if snapshots:
+                            model_target = str(snapshots[0])
+                            logger.info("Using local BGE-M3 weights snapshot: %s", model_target)
+
                 self._model = BGEM3FlagModel(
-                    self._model_name,
+                    model_target,
                     use_fp16=self._use_fp16,
                     device=self._device,
                 )

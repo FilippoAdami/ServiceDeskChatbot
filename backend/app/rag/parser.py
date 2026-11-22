@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class KBParseException(Exception):
     """Raised when a Markdown document fails front matter extraction or validation."""
+
     pass
 
 

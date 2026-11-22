@@ -17,12 +17,14 @@ class HealthResponse(BaseModel):
     """Typed schema for system health and status check."""
 
     status: str = Field(description="Overall service status ('ok' or 'error')")
-    database: str = Field(
-        description="Database connectivity status ('connected' or 'disconnected')"
-    )
+    database: str = Field(description="Database connectivity status ('connected' or 'disconnected')")
     timestamp: datetime = Field(description="Current UTC timestamp in ISO 8601 format")
     version: str = Field(description="Backend application version")
     environment: str = Field(description="Runtime environment name")
+    gemini_configured: bool = Field(
+        default=False,
+        description="Whether Gemini API key is configured in backend",
+    )
     detail: Optional[str] = Field(default=None, description="Optional diagnostic details")
 
 
@@ -40,13 +42,14 @@ def get_health(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> HealthResponse:
-    """Check API and database connectivity.
+    """Check API, database connectivity, and AI provider readiness.
 
     Returns HTTP 200 when database and service are responsive.
     Returns HTTP 503 if database connection fails.
     """
     now_utc = datetime.now(timezone.utc)
     db_ok = check_db_connection()
+    gemini_ok = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
 
     if not db_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -56,6 +59,7 @@ def get_health(
             timestamp=now_utc,
             version=settings.APP_VERSION,
             environment=settings.ENVIRONMENT,
+            gemini_configured=gemini_ok,
             detail="Database connection check failed",
         )
 
@@ -65,5 +69,6 @@ def get_health(
         timestamp=now_utc,
         version=settings.APP_VERSION,
         environment=settings.ENVIRONMENT,
+        gemini_configured=gemini_ok,
         detail=None,
     )

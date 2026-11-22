@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class KBFrontMatter(BaseModel):
     """Front matter metadata for a knowledge base Markdown document."""
+
     id: str = Field(..., description="Unique document ID (e.g., KB-AUTH-001)")
     title: str = Field(..., description="Document title")
     category: str = Field(..., description="Document category")
@@ -34,10 +35,10 @@ class KBFrontMatter(BaseModel):
         return str(v)
 
 
-
 @dataclass
 class KBDocument:
     """Parsed knowledge base document."""
+
     front_matter: KBFrontMatter
     content: str
     source_path: str
@@ -47,6 +48,7 @@ class KBDocument:
 @dataclass
 class KBChunk:
     """A semantic chunk derived from a knowledge base document."""
+
     chunk_id: str
     doc_id: str
     doc_title: str
@@ -60,6 +62,7 @@ class KBChunk:
 
 class SearchResultItem(BaseModel):
     """Single retrieval result with attribution and score."""
+
     chunk_id: str
     doc_id: str
     doc_title: str
@@ -73,6 +76,7 @@ class SearchResultItem(BaseModel):
 
 class KnowledgeSearchRequest(BaseModel):
     """Request schema for knowledge search endpoint."""
+
     query: str = Field(..., min_length=2, max_length=1000, description="Natural language search query")
     top_k: int = Field(default=5, ge=1, le=20, description="Maximum number of chunks to return")
     sub_queries: Optional[List[str]] = Field(
@@ -84,6 +88,7 @@ class KnowledgeSearchRequest(BaseModel):
 
 class KnowledgeSearchResponse(BaseModel):
     """Response schema for knowledge search endpoint."""
+
     query: str
     sub_queries: List[str] = Field(default_factory=list)
     results: List[SearchResultItem]
@@ -93,6 +98,7 @@ class KnowledgeSearchResponse(BaseModel):
 
 class KnowledgeStatusResponse(BaseModel):
     """Status information for the persistent knowledge base index."""
+
     is_ready: bool
     total_documents: int
     total_chunks: int
@@ -106,6 +112,7 @@ class KnowledgeStatusResponse(BaseModel):
 @dataclass
 class IndexingSummary:
     """Summary of a knowledge base re-indexing operation."""
+
     documents_scanned: int
     documents_approved: int
     documents_skipped: int

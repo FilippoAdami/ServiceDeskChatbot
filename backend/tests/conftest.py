@@ -5,6 +5,7 @@ from typing import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from backend.app.config import Settings, reset_settings_for_test
 from backend.app.db.session import init_db, reset_db_session
@@ -31,6 +32,20 @@ def test_settings(temp_db_path: Path) -> Generator[Settings, None, None]:
     yield settings
     reset_db_session()
     reset_settings_for_test(None)
+
+
+@pytest.fixture
+def db_session(test_settings: Settings) -> Generator[Session, None, None]:
+    """Provide an initialized database session for unit testing."""
+    from backend.app.db.session import get_session_factory
+
+    init_db()
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture

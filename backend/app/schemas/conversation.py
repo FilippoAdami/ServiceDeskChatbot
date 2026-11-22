@@ -30,6 +30,7 @@ class ConversationSummaryResponse(BaseModel):
     id: str
     user_id: str
     title: Optional[str] = None
+    category: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -45,6 +46,7 @@ class ConversationDetailResponse(BaseModel):
     id: str
     user_id: str
     title: Optional[str] = None
+    category: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime
