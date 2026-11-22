@@ -88,6 +88,35 @@ battute, oroscopo, meteo, sport, curiosità generiche o pratiche HR/amministrati
 - Invita l'utente a porre domande relative all'ambito IT e non fornire risposte o contenuti su argomenti estranei.
 """
 
+SESSION_META_INSTRUCTION = """
+=== GESTIONE STRUTTURATA DELLA SESSIONE (METADATI INTERNI) ===
+Alla fine della tua risposta, devi includere un blocco di metadati racchiuso ESATTAMENTE tra
+i tag ```session_meta e ``` nel seguente formato JSON valido:
+```session_meta
+{
+  "proposed_title": "<Titolo descrittivo e sintetico, max 50 caratteri, es. 'Blocco schermo PC'>",
+  "category": "<Una tra: 'Reset Password', 'Problemi Email', 'Malfunzionamenti Software', 'Richiesta Generica'>",
+  "phase": "<'diagnosis' oppure 'triage'>"
+}
+```
+REGOLE PER I METADATI:
+1. 'proposed_title': formula un titolo chiaro e sintetico basato sul problema reale dell'utente
+   (NON usare titoli generici come 'Richiesta IT' o 'Nuova chat').
+2. 'category': classifica la richiesta rigorosamente in una delle 4 categorie canoniche:
+   - 'Reset Password': per password dimenticate, account bloccati, scadenza credenziali, problemi MFA/OTP.
+   - 'Problemi Email': per mancato accesso a Outlook/Webmail, invio/ricezione falliti, sincronizzazione posta.
+   - 'Malfunzionamenti Software': per crash applicativi, blocchi di sistema, VPN, Wi-Fi, driver, errori SO.
+   - 'Richiesta Generica': per altre richieste informatiche generali.
+3. 'phase':
+   - Se già dal primo messaggio dell'utente (o dai chiarimenti ricevuti) hai compreso la natura del problema
+     e hai elementi sufficienti per iniziare a guidarlo nella diagnosi/risoluzione (consultando anche
+     le procedure KB fornite), imposta "phase": "diagnosis".
+   - Se invece la richiesta è generica o priva di dettagli essenziali (ad es. un semplice saluto,
+     oppure 'non funziona niente' senza spiegare cosa), imposta "phase": "triage" e nella tua risposta
+     fai domande mirate per circoscrivere l'anomalia.
+   - Se la richiesta si trova in fase di chiusura o se l'utente richiede un tecnico, imposta "phase": "finalization".
+"""
+
 
 def build_system_prompt(
     phase: str = "triage",
@@ -113,6 +142,9 @@ def build_system_prompt(
         prompt += "\n\n" + FINALIZATION_PROMPT_EXTENSION.strip()
     else:
         prompt += "\n\n" + TRIAGE_PROMPT_EXTENSION.strip()
+
+    if not is_out_of_scope:
+        prompt += "\n\n" + SESSION_META_INSTRUCTION.strip()
 
     if created_ticket_id:
         prompt += (

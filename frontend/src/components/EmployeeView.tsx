@@ -345,9 +345,19 @@ export const EmployeeView: React.FC = () => {
 
         return {
           ...prev,
+          title: turnResult.conversation_title || prev.title,
           updated_at: turnResult.message.created_at,
           messages: [...prev.messages, turnResult.message],
-          requests: updatedRequests,
+          requests: updatedRequests.map((r) =>
+            r.id === turnResult.request_id || r.status === "open"
+              ? {
+                  ...r,
+                  phase: turnResult.phase,
+                  initial_category: turnResult.category || r.initial_category,
+                  title: turnResult.conversation_title || r.title,
+                }
+              : r
+          ),
         };
       });
 
@@ -393,6 +403,7 @@ export const EmployeeView: React.FC = () => {
         if (!prev) return null;
         return {
           ...prev,
+          title: turnResult.conversation_title || prev.title,
           updated_at: turnResult.message.created_at,
           messages: [...prev.messages, turnResult.message],
         };

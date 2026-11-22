@@ -23,11 +23,10 @@ Progettato secondo le specifiche di [`docs/task.md`](docs/task.md) e sviluppato 
   - Risoluzioni confermate dai dipendenti e ticket risolti dai tecnici possono generare automaticamente bozze di articoli tecnici Markdown.
   - Workspace di revisione tecnico con rilevamento semantico di articoli duplicati/sovrapposti.
   - Pubblicazione atomica su disco (`.tmp` -> replace atomico + backup `.bak`) e re-indicizzazione istantanea solo previa esplicita approvazione umana.
-- **Categorie Canoniche Allineate a `docs/task.md`**:
-  - `Reset Password` (credenziali, login, active directory, MFA)
-  - `Problemi Email` (posta elettronica, recapito, allegati, Outlook)
-  - `Malfunzionamenti Software` (crash applicativi, Teams, Office, blocchi PC)
-  - `Richiesta Generica` (informazioni generali e quesiti non catalogati altrove)
+- **Categorie Canoniche Allineate a `docs/task.md` & Titolazione Dinamica**:
+  - Categorie supportate: `Reset Password`, `Problemi Email`, `Malfunzionamenti Software`, `Richiesta Generica`.
+  - **Zero Extra Turns (`session_meta`)**: Gemini restituisce direttamente nella risposta di turno il titolo sintetico proposto, la categoria normalizzata e la decisione sulla fase (`triage` vs `diagnosis`).
+  - L'orchestratore estrae i metadati, aggiorna il database relazionale e rimuove il blocco JSON dal messaggio visibile all'utente. Se il problema è chiaro fin dal primo turno, l'agente passa subito a `diagnosis`; altrimenti rimane in `triage` e formula domande mirate di chiarimento.
 
 ---
 
@@ -150,7 +149,7 @@ make dev-frontend
 |---|---|
 | `make check` | **Controllo di qualità totale**: esegue sequenzialmente tutti i test (backend e frontend), ruff, eslint, mypy, tsc e build di produzione. |
 | `make test` | Esegue l'intera suite di test automatizzati (backend + frontend). |
-| `make test-backend` | Esegue i test unitari e di integrazione backend con `pytest` (136 test). |
+| `make test-backend` | Esegue i test unitari e di integrazione backend con `pytest` (140 test). |
 | `make test-frontend` | Esegue i test dei componenti frontend con `vitest` (25 test). |
 | `make lint` | Esegue il linter Python (`ruff`) e il linter frontend (`eslint`). |
 | `make type-check` | Esegue il type-checker statico `mypy` sul backend e `tsc --noEmit` sul frontend. |

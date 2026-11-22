@@ -7,7 +7,11 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.app.agent.orchestrator import ConversationalAgentOrchestrator
+from backend.app.agent.orchestrator import (
+    ConversationalAgentOrchestrator,
+    SessionMetaData,
+    extract_session_meta,
+)
 from backend.app.config import Settings, reset_settings_for_test
 from backend.app.db.models import (
     AgentPhase,
@@ -286,3 +290,134 @@ async def test_orchestrator_skips_rag_on_simple_greeting(
     # RAG search must be bypassed completely for simple greeting
     assert len(result.sources) == 0
     assert result.phase == AgentPhase.TRIAGE.value
+
+
+def test_extract_session_meta_valid() -> None:
+    text = (
+        "Buongiorno, ti aiuto volentieri a verificare il problema di posta.\n\n"
+        "```session_meta\n"
+        "{\n"
+        '  "proposed_title": "Mancato accesso Webmail Outlook",\n'
+        '  "category": "Problemi Email",\n'
+        '  "phase": "diagnosis"\n'
+        "}\n"
+        "```"
+    )
+    clean, meta = extract_session_meta(text)
+    assert clean == "Buongiorno, ti aiuto volentieri a verificare il problema di posta."
+    assert meta is not None
+    assert isinstance(meta, SessionMetaData)
+    assert meta.proposed_title == "Mancato accesso Webmail Outlook"
+    assert meta.category == "Problemi Email"
+    assert meta.phase == "diagnosis"
+
+
+def test_extract_session_meta_fallback_on_invalid_or_missing() -> None:
+    # Missing block
+    clean, meta = extract_session_meta("Solo testo normale senza blocchi")
+    assert clean == "Solo testo normale senza blocchi"
+    assert meta is None
+
+    # Malformed JSON
+    clean_malformed, meta_malformed = extract_session_meta(
+        "Messaggio\n```session_meta\n{proposed_title: no quotes}\n```"
+    )
+    assert "Messaggio" in clean_malformed
+    assert meta_malformed is None
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_turn_with_session_meta_immediate_diagnosis_and_title(
+    test_rag_service: KnowledgeRetrievalService,
+    db_session: Session,
+) -> None:
+    canned_llm_output = (
+        "Ho individuato la causa del disservizio: procediamo con la verifica della casella.\n"
+        "1. Apri https://outlook.office.com.\n\n"
+        "```session_meta\n"
+        "{\n"
+        '  "proposed_title": "Errore credenziali Outlook Webmail",\n'
+        '  "category": "Problemi Email",\n'
+        '  "phase": "diagnosis"\n'
+        "}\n"
+        "```"
+    )
+    llm = MockLLMProvider(canned_responses=[canned_llm_output])
+    orch = ConversationalAgentOrchestrator(llm_provider=llm, rag_service=test_rag_service)
+
+    db = db_session
+    conv = Conversation(title="Nuova Richiesta IT", user_id="user_test")
+    db.add(conv)
+    db.flush()
+
+    msg = Message(
+        conversation_id=conv.id,
+        role=MessageRole.USER.value,
+        content="Non riesco ad accedere alla mia posta Outlook da stamattina, dice errore password",
+    )
+    db.add(msg)
+    db.commit()
+
+    # First turn: Gemini recognizes problem immediately and returns session_meta
+    result = await orch.execute_turn(conv.id, db)
+
+    # Content must NOT contain the technical session_meta block
+    assert "```session_meta" not in result.message.content
+    assert "Ho individuato la causa del disservizio" in result.message.content
+
+    # State must transition immediately to DIAGNOSIS on turn 1
+    assert result.phase == AgentPhase.DIAGNOSIS.value
+    assert result.conversation_title == "Errore credenziali Outlook Webmail"
+    assert result.category == "Problemi Email"
+
+    # DB records must reflect the updated title and category
+    db.refresh(conv)
+    assert conv.title == "Errore credenziali Outlook Webmail"
+
+    req = db.scalar(select(SupportRequest).where(SupportRequest.conversation_id == conv.id))
+    assert req is not None
+    assert req.title == "Errore credenziali Outlook Webmail"
+    assert req.initial_category == "Problemi Email"
+    assert req.phase == AgentPhase.DIAGNOSIS.value
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_turn_with_session_meta_remains_in_triage(
+    test_rag_service: KnowledgeRetrievalService,
+    db_session: Session,
+) -> None:
+    canned_llm_output = (
+        "Per aiutarti ho bisogno di maggiori dettagli. Quale programma o servizio non risponde?\n\n"
+        "```session_meta\n"
+        "{\n"
+        '  "proposed_title": "Richiesta chiarimenti supporto generico",\n'
+        '  "category": "Richiesta Generica",\n'
+        '  "phase": "triage"\n'
+        "}\n"
+        "```"
+    )
+    llm = MockLLMProvider(canned_responses=[canned_llm_output])
+    orch = ConversationalAgentOrchestrator(llm_provider=llm, rag_service=test_rag_service)
+
+    db = db_session
+    conv = Conversation(title="Nuova Richiesta IT", user_id="user_test")
+    db.add(conv)
+    db.flush()
+
+    msg = Message(
+        conversation_id=conv.id,
+        role=MessageRole.USER.value,
+        content="ciao, ho un problema con una cosa al pc",
+    )
+    db.add(msg)
+    db.commit()
+
+    result = await orch.execute_turn(conv.id, db)
+
+    assert result.phase == AgentPhase.TRIAGE.value
+    assert result.conversation_title == "Richiesta chiarimenti supporto generico"
+    assert result.category == "Richiesta Generica"
+
+    req = db.scalar(select(SupportRequest).where(SupportRequest.conversation_id == conv.id))
+    assert req is not None
+    assert req.phase == AgentPhase.TRIAGE.value

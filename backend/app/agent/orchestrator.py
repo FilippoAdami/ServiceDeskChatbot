@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -107,6 +108,70 @@ RESOLUTION_PROMPT_PHRASE_PATTERN = re.compile(
 
 
 @dataclass
+class SessionMetaData:
+    """Structured metadata returned by LLM for session management without extra turns."""
+
+    proposed_title: Optional[str] = None
+    category: Optional[str] = None
+    phase: Optional[str] = None
+
+
+def extract_session_meta(content: str) -> Tuple[str, Optional[SessionMetaData]]:
+    """Extracts and strips structured session metadata (proposed_title, category, phase)
+    from assistant response, returning the cleaned user-facing message and metadata."""
+    if not content:
+        return content, None
+
+    meta_pattern = re.compile(
+        r"```(?:session_meta|json)?\s*(\{[\s\S]*?\"(?:proposed_title|category|phase)\"[\s\S]*?\})\s*```",
+        re.IGNORECASE,
+    )
+    match = meta_pattern.search(content)
+    if not match:
+        return content.strip(), None
+
+    raw_json = match.group(1).strip()
+    try:
+        data = json.loads(raw_json)
+        if not isinstance(data, dict):
+            return content.strip(), None
+
+        clean_text = content[: match.start()].strip()
+        trailing = content[match.end() :].strip()
+        if trailing:
+            clean_text += f"\n\n{trailing}"
+
+        proposed_title: Optional[str] = None
+        raw_title = data.get("proposed_title")
+        if raw_title and isinstance(raw_title, str):
+            clean_t = redact_secrets(raw_title.strip())
+            if clean_t and clean_t.lower() not in ["richiesta it", "nuova chat", "nuova richiesta it"]:
+                proposed_title = clean_t[:60]
+
+        category: Optional[str] = None
+        raw_cat = data.get("category")
+        if raw_cat and isinstance(raw_cat, str):
+            category = normalize_task_category(raw_cat.strip())
+
+        phase: Optional[str] = None
+        raw_phase = data.get("phase")
+        if raw_phase and isinstance(raw_phase, str):
+            p_clean = raw_phase.strip().lower()
+            if p_clean in (AgentPhase.TRIAGE.value, AgentPhase.DIAGNOSIS.value, AgentPhase.FINALIZATION.value):
+                phase = p_clean
+
+        meta = SessionMetaData(
+            proposed_title=proposed_title,
+            category=category,
+            phase=phase,
+        )
+        return clean_text.strip(), meta
+    except Exception as exc:
+        logger.warning("Failed to parse session_meta block from assistant response: %s", exc)
+        return content.strip(), None
+
+
+@dataclass
 class AssistantTurnResult:
     """Structured result of an assistant conversational turn."""
 
@@ -122,6 +187,8 @@ class AssistantTurnResult:
     latency_ms: float = 0.0
     finish_reason: Optional[str] = None
     is_truncated: bool = False
+    conversation_title: Optional[str] = None
+    category: Optional[str] = None
 
 
 
@@ -270,9 +337,6 @@ class ConversationalAgentOrchestrator:
                 current_phase = AgentPhase.TRIAGE.value
             elif is_failure and current_phase == AgentPhase.DIAGNOSIS.value:
                 # Stay in diagnosis or offer alternative troubleshooting
-                current_phase = AgentPhase.DIAGNOSIS.value
-            elif current_phase == AgentPhase.TRIAGE.value and len(all_messages) >= 2 and not is_greeting:
-                # After initial triage clarification, proceed to diagnosis
                 current_phase = AgentPhase.DIAGNOSIS.value
             elif current_phase == AgentPhase.FINALIZATION.value and not is_resolution:
                 # If user brings up new problem or clarifies in finalization, return to diagnosis
@@ -536,8 +600,65 @@ class ConversationalAgentOrchestrator:
                         )
                     llm_res.content = fallback_text
 
-            # 9. Atomically Persist Assistant Message
-            sanitized_response = redact_secrets(llm_res.content)
+            # 9. Extract Structured Session Meta & Update State
+            clean_content, session_meta = extract_session_meta(llm_res.content)
+            llm_res.content = clean_content
+
+            if session_meta:
+                # Update conversation and support request title if Gemini proposed a title
+                if session_meta.proposed_title:
+                    clean_prop_title = session_meta.proposed_title.strip()
+                    if (
+                        not conv.title
+                        or conv.title.strip() in ["", "Nuova Richiesta IT", "Nuova Chat", "Richiesta IT"]
+                        or len(all_messages) <= 3
+                    ):
+                        conv.title = clean_prop_title
+                        support_req.title = clean_prop_title
+                        logger.info(
+                            "Updated conversation %s and request title to '%s'",
+                            conversation_id,
+                            clean_prop_title,
+                        )
+
+                # Update category
+                if session_meta.category:
+                    support_req.initial_category = session_meta.category
+                    if current_phase == AgentPhase.FINALIZATION.value or support_req.outcome:
+                        support_req.final_category = session_meta.category
+                    logger.info("Updated request category to '%s'", session_meta.category)
+
+                # Update phase based on LLM decision (unless security overrides apply)
+                if session_meta.phase and not (is_escalation or is_resolution or is_out_of_scope):
+                    if session_meta.phase == AgentPhase.DIAGNOSIS.value:
+                        current_phase = AgentPhase.DIAGNOSIS.value
+                        support_req.phase = current_phase
+                        logger.info("LLM transitioned request %s to DIAGNOSIS phase", support_req.id)
+                    elif session_meta.phase == AgentPhase.TRIAGE.value:
+                        current_phase = AgentPhase.TRIAGE.value
+                        support_req.phase = current_phase
+                        logger.info("LLM decided to remain in TRIAGE phase for request %s", support_req.id)
+                    elif session_meta.phase == AgentPhase.FINALIZATION.value:
+                        current_phase = AgentPhase.FINALIZATION.value
+                        support_req.phase = current_phase
+            else:
+                # Fallback when session_meta is absent (offline mock or legacy LLM response)
+                if not conv.title or conv.title.strip() in ["", "Nuova Richiesta IT", "Nuova Chat", "Richiesta IT"]:
+                    clean_title = last_user_text.split("\n")[0].strip()
+                    if len(clean_title) > 55:
+                        clean_title = clean_title[:52] + "..."
+                    conv.title = clean_title
+                if (
+                    current_phase == AgentPhase.TRIAGE.value
+                    and len(all_messages) >= 2
+                    and not is_greeting
+                    and not is_out_of_scope
+                ):
+                    current_phase = AgentPhase.DIAGNOSIS.value
+                    support_req.phase = current_phase
+
+            # 9b. Atomically Persist Assistant Message
+            sanitized_response = redact_secrets(clean_content)
             contains_resolution_phrase = bool(RESOLUTION_PROMPT_PHRASE_PATTERN.search(sanitized_response))
             is_bot_resolution = (
                 (is_resolution or current_phase == AgentPhase.FINALIZATION.value or contains_resolution_phrase)
@@ -567,6 +688,12 @@ class ConversationalAgentOrchestrator:
                 "finish_reason": llm_res.finish_reason,
                 "is_truncated": is_truncated,
             }
+            if session_meta:
+                assistant_metadata["session_meta"] = {
+                    "proposed_title": session_meta.proposed_title,
+                    "category": session_meta.category,
+                    "phase": session_meta.phase,
+                }
             if current_ticket:
                 assistant_metadata["ticket_id"] = current_ticket.id
                 assistant_metadata["ticket_status"] = current_ticket.status
@@ -593,6 +720,13 @@ class ConversationalAgentOrchestrator:
                 request_id=support_req.id,
                 payload={
                     "phase": current_phase,
+                    "category": support_req.initial_category,
+                    "title": conv.title,
+                    "session_meta": {
+                        "proposed_title": session_meta.proposed_title,
+                        "category": session_meta.category,
+                        "phase": session_meta.phase,
+                    } if session_meta else None,
                     "escalation_requested": support_req.escalation_requested,
                     "resolution_proposed": is_bot_resolution,
                     "ticket_id": current_ticket.id if current_ticket else None,
@@ -621,6 +755,8 @@ class ConversationalAgentOrchestrator:
                 latency_ms=llm_res.latency_ms,
                 finish_reason=llm_res.finish_reason,
                 is_truncated=is_truncated,
+                conversation_title=conv.title,
+                category=support_req.initial_category,
             )
 
 

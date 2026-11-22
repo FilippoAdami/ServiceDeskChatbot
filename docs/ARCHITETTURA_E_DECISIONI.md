@@ -167,6 +167,36 @@ Un principio cardine di `AGENTS.md` stabilisce che **l'inattività dell'utente n
 
 ---
 
+### F. Gestione del Contesto, Compattazione Relazionale e Metadati di Sessione a Zero Chiamate Extra (`session_meta`)
+
+Una questione cruciale nei sistemi conversazionali riguarda la saturazione del contesto e la qualità dei dati di sessione (titolo della richiesta, categorizzazione, momento opportuno per passare da triage a diagnosi).
+
+Nel nostro sistema, anziché affidarsi a costosi grafi di memoria probabilistici o a riassunti ricorsivi turn-by-turn che introducono latenza e allucinazioni, abbiamo adottato una strategia a **Finestra Scorrevole Parametrica + Distillazione Relazionale con Metadati Strutturati Emessi dall'LLM**:
+
+1. **Sliding Window Temporale (`AGENT_CONTEXT_WINDOW_TURNS = 10`):**
+   - I messaggi della conversazione sono persistiti integralmente nel database SQLite per audit e continuità storica.
+   - Tuttavia, al momento della chiamata LLM, il backend applica uno slicing dei soli ultimi $N$ messaggi (default: 10 messaggi / 5 turni completi). Ogni messaggio nella finestra include annotazioni temporali esatte (`[14:32:01 UTC • inviato 45 secondi dopo il messaggio precedente]`), fornendo consapevolezza dei tempi di attesa senza sprecare token in cronologie chilometriche.
+
+2. **Metadati Strutturati a Zero Messaggi Aggiuntivi (`session_meta`):**
+   - Chiedere all'LLM in una chiamata separata di categorizzare la richiesta o formulare un titolo raddoppierebbe la latenza di ciascun turno (+1 secondo a messaggio) e consumerebbe quota API superflua.
+   - Abbiamo pertanto istruito Gemini, tramite `SESSION_META_INSTRUCTION`, a includere a fine risposta un blocco strutturato:
+     ```session_meta
+     {
+       "proposed_title": "Errore credenziali Outlook Webmail",
+       "category": "Problemi Email",
+       "phase": "diagnosis"
+     }
+     ```
+   - L'orchestratore di backend ([`backend/app/agent/orchestrator.py`](../backend/app/agent/orchestrator.py)):
+     1. Intercetta ed estrae il blocco JSON prima della persistenza;
+     2. Rimuove integralmente il blocco tecnico dal messaggio visibile all'utente, che riceve una risposta fluida e professionale;
+     3. Aggiorna istantaneamente il titolo della conversazione (`conv.title`) e della richiesta (`support_req.title`) con la formulazione concisa e specifica proposta da Gemini;
+     4. Applica la normalizzazione della categoria (`normalize_task_category`) su una delle 4 categorie canoniche (`Reset Password`, `Problemi Email`, `Malfunzionamenti Software`, `Richiesta Generica`);
+     5. Governa la transizione di fase in modo autonomo e intelligente: se già al primo messaggio Gemini riconosce la problematica e dispone delle procedure KB per guidare l'utente, transiziona immediatamente da `triage` a `diagnosis`. Se invece i dettagli sono vaghi o assenti, Gemini rimane in `triage` e formula le domande di chiarimento pertinenti.
+   - **Resilienza e Fallback:** Se il blocco `session_meta` è assente o malformato (es. test offline con provider mock o risposta troncata), entrano in funzione i fallback deterministici garantiti dal backend senza alcun crash o blocco dell'applicazione.
+
+---
+
 ## 4. Alternative Architetturali Scartate
 
 Durante la progettazione e l'evoluzione delle milestone, diverse alternative tecnologiche sono state valutate e consapevolmente respinte:
@@ -174,6 +204,7 @@ Durante la progettazione e l'evoluzione delle milestone, diverse alternative tec
 | Alternativa Scartata | Soluzione Adottata | Motivazione Tecnica del Rifiuto |
 |---|---|---|
 | **Multi-Agent Frameworks (LangGraph, CrewAI, AutoGen)** | Orchestratore a 3 Fasi controllato da Macchina a Stati | Eccessiva latenza (3-5x chiamate API per turno), rischio di deadlock comunicativo, costo in token sproporzionato, difficoltà di audit deterministico e perdita di controllo transazionale. |
+| **Grafi di Memoria / Riassunti Ricorsivi Turn-by-Turn** | Sliding Window (10 turni) + Blocco `session_meta` a Zero Chiamate Extra | I riassunti continui causano perdita di dettagli tecnici critici ("telefono senza fili" per codici errore esatti o host) e raddoppiano la latenza a ogni turno. La sliding window preserva i testi esatti, mentre il blocco `session_meta` aggiorna titolo, categoria e fase direttamente nella medesima chiamata LLM. |
 | **Vector DB Cloud / Esterni (Pinecone, Qdrant cluster, Milvus)** | ChromaDB locale persistente su SQLite/DuckDB | Violazione del vincolo Local-First, costi di abbonamento ricorrenti, dipendenza dalla connettività internet per ogni ricerca interna e complessità infrastrutturale non necessaria per 500 dipendenti. |
 | **Generazione e Pubblicazione KB Autonoma (Zero-Human-in-the-Loop)** | Workspace di proposta bozze con approvazione umana | Rischio di inquinamento della base di conoscenza con allucinazioni di secondo livello; impossibilità di verificare la conformità di sicurezza senza validazione tecnica. |
 | **Chiusura Implicita per Timeout Chat (Stile Helpdesk Tradizionale)** | Conferma interattiva con barra timer fluida a 2 minuti | Considerare l'abbandono come risoluzione falsa le metriche aziendali e nasconde i problemi irrisolti; il timer fluido offre certezza senza ansia visiva. |

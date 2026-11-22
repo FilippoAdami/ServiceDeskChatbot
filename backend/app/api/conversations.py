@@ -297,6 +297,8 @@ class AssistantTurnResponse(BaseModel):
     latency_ms: float = 0.0
     finish_reason: Optional[str] = None
     is_truncated: bool = False
+    conversation_title: Optional[str] = None
+    category: Optional[str] = None
 
 
 @router.post(
@@ -339,6 +341,8 @@ async def execute_assistant_turn(
         latency_ms=result.latency_ms,
         finish_reason=result.finish_reason,
         is_truncated=result.is_truncated,
+        conversation_title=result.conversation_title,
+        category=result.category,
     )
 
 

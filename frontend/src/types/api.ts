@@ -82,6 +82,8 @@ export interface AssistantTurnResponse {
   latency_ms: number;
   finish_reason?: string | null;
   is_truncated?: boolean;
+  conversation_title?: string | null;
+  category?: string | null;
 }
 
 
